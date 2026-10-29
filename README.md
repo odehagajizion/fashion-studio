@@ -25,12 +25,12 @@ Open http://localhost:3000.
 
 3. Restart the development server after saving `.env.local`.
 4. In Supabase Authentication, create the owner user. Public sign-up is not exposed by this app; owner and staff accounts should be created or invited through controlled admin workflows.
-5. In the Supabase SQL Editor, run `supabase/migrations/202610290001_initial_business_membership.sql`, then `supabase/migrations/202610290002_customers_measurements.sql`, then `supabase/migrations/202610290003_orders_production.sql`.
+5. In the Supabase SQL Editor, run `supabase/migrations/202610290001_initial_business_membership.sql`, then `supabase/migrations/202610290002_customers_measurements.sql`, then `supabase/migrations/202610290003_orders_production.sql`, then `supabase/migrations/202610290004_manual_payments.sql`.
 6. Open `supabase/setup-first-owner.sql`, replace `replace-with-owner-email@example.com` with the owner's Supabase Auth email, then run it in the SQL Editor. This creates the MvendyWendy business and owner membership.
 
 The dashboard and customer directory redirect unauthenticated visitors to sign-in and users without an active business membership to the setup page. Owners and supervisors can create, search, edit, and archive customers, and record dated measurement sessions with configurable fields in centimetres or inches. Measurement history is retained when a customer is archived.
 
-Orders support multiple garments, a linked measurement session, production-stage updates, audited schedule changes, and separate planned and actual fulfilment dates. Price records are restricted to owners and supervisors. Payment recording and a team assignment interface remain in the next implementation slice.
+Orders support multiple garments, a linked measurement session, production-stage updates, audited schedule changes, and separate planned and actual fulfilment dates. Price and payment records are restricted to owners and supervisors. Manual receipts are append-only, balances are calculated from order lines and payment adjustments, and refunds or reversals are recorded as separate audit entries. Gateway reconciliation and a team assignment interface remain future work.
 
 ## Security notes
 
@@ -45,7 +45,3 @@ Orders support multiple garments, a linked measurement session, production-stage
 2. Customer records and measurement history
 3. Orders, production tracking, and fulfilment
 4. Payments, fulfilment, reports, and audit history
-
-
-
-
