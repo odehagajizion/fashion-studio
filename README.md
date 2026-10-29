@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # MvendyWendy Fashion Studio
 
 A web workspace for running a fashion studio. This repository currently contains the first dashboard screen, built with Next.js, TypeScript, and CSS.
@@ -34,3 +35,6 @@ git push -u origin main
 ```
 
 Do not commit `.env.local` or any service keys. The included `.gitignore` excludes local environment files.
+=======
+# fashion-studio
+>>>>>>> 8586a8ced4b402482efb570f8a6007d634ecf943
