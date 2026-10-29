@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 type NavItem = { label: string; icon: string };
@@ -21,6 +22,7 @@ function Card({ title, subtitle, children, className = "" }: { title: string; su
 }
 
 export default function Home() {
+  const router = useRouter();
   const [active, setActive] = useState("Dashboard");
   const [toast, setToast] = useState("");
   const announce = (message: string) => { setToast(message); window.setTimeout(() => setToast(""), 2600); };
@@ -28,11 +30,11 @@ export default function Home() {
   return <main className="app-shell">
     <aside className="sidebar">
       <a className="brand" href="#dashboard" onClick={() => setActive("Dashboard")}><span className="brand-mark">M</span><span>MvendyWendy</span></a>
-      <nav aria-label="Main navigation">{groups.map(group => <div className="nav-group" key={group.title}><p className="group-label">{group.title}</p>{group.items.map(item => <button key={item.label} className={`nav-item ${active === item.label ? "selected" : ""}`} onClick={() => { setActive(item.label); if (item.label !== "Dashboard") announce(`${item.label} workspace is coming next.`); }}><span className="nav-icon">{item.icon}</span>{item.label}</button>)}</div>)}<div className="nav-group nav-settings"><button className={`nav-item ${active === "Settings" ? "selected" : ""}`} onClick={() => { setActive("Settings"); announce("Settings workspace is coming next."); }}><span className="nav-icon">⚙</span>Settings</button></div></nav>
+      <nav aria-label="Main navigation">{groups.map(group => <div className="nav-group" key={group.title}><p className="group-label">{group.title}</p>{group.items.map(item => <button key={item.label} className={`nav-item ${active === item.label ? "selected" : ""}`} onClick={() => { if (item.label === "Customers") { router.push("/customers"); return; } setActive(item.label); if (item.label !== "Dashboard") announce(`${item.label} workspace is coming next.`); }}><span className="nav-icon">{item.icon}</span>{item.label}</button>)}</div>)}<div className="nav-group nav-settings"><button className={`nav-item ${active === "Settings" ? "selected" : ""}`} onClick={() => { setActive("Settings"); announce("Settings workspace is coming next."); }}><span className="nav-icon">⚙</span>Settings</button></div></nav>
       <div className="sidebar-foot"><div className="avatar">OW</div><div><strong>Owner workspace</strong><span>Fashion studio</span></div><span className="chevron">⌄</span></div>
     </aside>
     <section className="main-area" id="dashboard">
-      <div className="topline"><div><p className="eyebrow">THURSDAY · 29 OCTOBER 2026</p><h1>Welcome back, Owner <span className="wave">✦</span></h1><p className="page-subtitle">Here’s what’s happening in your studio today.</p></div><div className="top-actions"><button className="button button-secondary" onClick={() => announce("Customer registration is the next workflow to build.")}><span>＋</span> New customer</button><button className="button button-primary" onClick={() => announce("Order creation is the next workflow to build.")}><span>＋</span> New order</button><button className="button button-secondary sign-out" onClick={handleSignOut}>Sign out</button><button className="icon-button notifications" aria-label="Notifications" onClick={() => announce("You’re all caught up.")}>♧<i /></button></div></div>
+      <div className="topline"><div><p className="eyebrow">THURSDAY · 29 OCTOBER 2026</p><h1>Welcome back, Owner <span className="wave">✦</span></h1><p className="page-subtitle">Here’s what’s happening in your studio today.</p></div><div className="top-actions"><button className="button button-secondary" onClick={() => router.push("/customers")}><span>＋</span> New customer</button><button className="button button-primary" onClick={() => announce("Order creation is the next workflow to build.")}><span>＋</span> New order</button><button className="button button-secondary sign-out" onClick={handleSignOut}>Sign out</button><button className="icon-button notifications" aria-label="Notifications" onClick={() => announce("You’re all caught up.")}>♧<i /></button></div></div>
       <div className="notice"><span className="notice-dot" /><span><strong>Illustration mode</strong> — these figures are sample data, not connected to a database yet.</span><button onClick={() => announce("We’ll connect your studio data as the next foundation step.")}>Learn more <span>→</span></button></div>
       <section className="stats-grid" aria-label="Studio overview">
         <article className="stat-card"><div className="stat-top"><span>Total customers</span><span className="stat-icon icon-sage">♙</span></div><strong className="stat-value">128</strong><div className="stat-foot"><span className="muted">registered in your studio</span><span className="trend">↗ 12%</span></div></article>
@@ -54,4 +56,5 @@ export default function Home() {
     {toast && <div className="toast" role="status"><span>✦</span>{toast}</div>}
   </main>;
 }
+
 
