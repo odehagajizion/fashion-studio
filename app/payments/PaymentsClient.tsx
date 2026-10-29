@@ -25,6 +25,7 @@ export default function PaymentsClient({ orders, receivableOrders, history, tota
   const [note, setNote] = useState("");
   const [receivedDate, setReceivedDate] = useState(localDate);
   const [adjusting, setAdjusting] = useState<PaymentEvent | null>(null);
+  const [receipt, setReceipt] = useState<PaymentEvent | null>(null);
   const [adjustmentType, setAdjustmentType] = useState<"refund" | "reversal">("refund");
   const [adjustmentAmount, setAdjustmentAmount] = useState("");
   const [reason, setReason] = useState("");
@@ -119,8 +120,25 @@ export default function PaymentsClient({ orders, receivableOrders, history, tota
         <div className={`payment-event-icon ${event.kind}`}>{event.kind === "payment" ? "₦" : "↺"}</div>
         <div className="payment-event-main"><strong>{event.order_ref} · {event.customer_name}</strong><span>{event.kind === "payment" ? `${methodLabels[event.method ?? "other"] ?? event.method} receipt${event.reference ? ` · ${event.reference}` : ""}` : `${event.method === "refund" ? "Refund" : "Reversal"} · ${event.note}`}</span><small>{displayDate(event.created_at)}</small></div>
         <strong className={`payment-event-amount ${event.kind === "adjustment" ? "negative" : "positive"}`}>{event.kind === "adjustment" ? "−" : "+"}{currency.format(event.amount)}</strong>
+        {event.kind === "payment" && <button className="receipt-link" onClick={() => setReceipt(event)}>Receipt</button>}
         {event.kind === "payment" && event.remaining_adjustable > 0 && <button className="text-link adjust-link" onClick={() => { setAdjusting(event); setAdjustmentType("refund"); setAdjustmentAmount(""); setReason(""); setFeedback(""); }}>Adjust</button>}
       </article>)}</div>}
     </section>
+    {receipt && <div className="receipt-overlay" onClick={event => { if (event.target === event.currentTarget) setReceipt(null); }} onKeyDown={event => { if (event.key === "Escape") setReceipt(null); }}>
+      <section className="receipt-dialog" role="dialog" aria-modal="true" aria-labelledby="receipt-title">
+        <header className="receipt-dialog-actions"><span>Payment receipt</span><button type="button" className="close-button receipt-close" autoFocus aria-label="Close receipt" onClick={() => setReceipt(null)}>×</button></header>
+        <div className="printable-receipt">
+          <div className="receipt-brand"><span className="brand-mark">M</span><strong>MvendyWendy</strong><small>FASHION STUDIO</small></div>
+          <div className="receipt-rule" />
+          <p className="eyebrow">PAYMENT RECEIPT</p><h2 id="receipt-title">Thank you for your payment</h2>
+          <div className="receipt-number"><span>Receipt number</span><strong>RCT-{receipt.payment_id?.slice(0, 8).toUpperCase() ?? "UNRECORDED"}</strong></div>
+          <div className="receipt-amount"><span>Amount received</span><strong>{currency.format(receipt.amount)}</strong></div>
+          <dl className="receipt-details"><div><dt>Customer</dt><dd>{receipt.customer_name}</dd></div><div><dt>Order reference</dt><dd>{receipt.order_ref}</dd></div><div><dt>Date received</dt><dd>{displayDate(receipt.created_at)}</dd></div><div><dt>Payment method</dt><dd>{methodLabels[receipt.method ?? "other"] ?? receipt.method}</dd></div>{receipt.reference && <div><dt>Reference</dt><dd>{receipt.reference}</dd></div>}{receipt.note && <div><dt>Note</dt><dd>{receipt.note}</dd></div>}</dl>
+          <p className="receipt-footnote">This receipt confirms the original payment recorded for this order. Any later refund or reversal is listed separately in the payment history.</p>
+          <div className="receipt-signoff">Thank you for choosing MvendyWendy.</div>
+        </div>
+        <footer className="receipt-dialog-actions"><button type="button" className="button button-secondary" onClick={() => setReceipt(null)}>Close</button><button type="button" className="button button-primary" onClick={() => window.print()}>Print receipt</button></footer>
+      </section>
+    </div>}
   </div>;
 }
