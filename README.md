@@ -1,6 +1,6 @@
 # MvendyWendy Fashion Studio
 
-A web application for fashion studio operations. The current build includes the owner dashboard, email and password sign-in, protected dashboard routing, customer records, and reusable measurement history. Supabase migrations define tenant membership, customer access policies, and atomic measurement-session writes.
+A web application for fashion studio operations. The current build includes the owner dashboard, email and password sign-in, protected dashboard routing, customer records, reusable measurement history, garment orders, production stages, schedule changes, and fulfilment tracking. Supabase migrations define tenant membership, customer access policies, and auditable order workflows.
 
 ## Run locally
 
@@ -25,10 +25,12 @@ Open http://localhost:3000.
 
 3. Restart the development server after saving `.env.local`.
 4. In Supabase Authentication, create the owner user. Public sign-up is not exposed by this app; owner and staff accounts should be created or invited through controlled admin workflows.
-5. In the Supabase SQL Editor, run `supabase/migrations/202610290001_initial_business_membership.sql`, then `supabase/migrations/202610290002_customers_measurements.sql`.
+5. In the Supabase SQL Editor, run `supabase/migrations/202610290001_initial_business_membership.sql`, then `supabase/migrations/202610290002_customers_measurements.sql`, then `supabase/migrations/202610290003_orders_production.sql`.
 6. Open `supabase/setup-first-owner.sql`, replace `replace-with-owner-email@example.com` with the owner's Supabase Auth email, then run it in the SQL Editor. This creates the MvendyWendy business and owner membership.
 
 The dashboard and customer directory redirect unauthenticated visitors to sign-in and users without an active business membership to the setup page. Owners and supervisors can create, search, edit, and archive customers, and record dated measurement sessions with configurable fields in centimetres or inches. Measurement history is retained when a customer is archived.
+
+Orders support multiple garments, a linked measurement session, production-stage updates, audited schedule changes, and separate planned and actual fulfilment dates. Price records are restricted to owners and supervisors. Payment recording and a team assignment interface remain in the next implementation slice.
 
 ## Security notes
 
@@ -41,7 +43,9 @@ The dashboard and customer directory redirect unauthenticated visitors to sign-i
 
 1. Authentication, business membership, and protected owner workspace
 2. Customer records and measurement history
-3. Orders and production tracking
+3. Orders, production tracking, and fulfilment
 4. Payments, fulfilment, reports, and audit history
+
+
 
 
