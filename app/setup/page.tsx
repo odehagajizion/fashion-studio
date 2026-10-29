@@ -10,7 +10,7 @@ export default async function SetupPage({ searchParams }: { searchParams: Promis
     <p className="auth-subtitle">{needsEnvironment ? "Add your Supabase project settings to connect sign-in and the studio database." : "Your account is signed in, but it isn’t linked to a studio yet."}</p>
     <div className="setup-steps">
       <div><span>1</span><p>Create <code>.env.local</code> from <code>.env.example</code>, then add your project URL and publishable key.</p></div>
-      <div><span>2</span><p>Run the SQL migrations in order from <strong>Supabase → SQL Editor</strong>: membership, customers and measurements, orders and production, then manual payments.</p></div>
+      <div><span>2</span><p>Run the SQL migrations in order from <strong>Supabase → SQL Editor</strong>: membership, customers and measurements, orders and production, manual payments, then production assignments.</p></div>
       <div><span>3</span><p>Create the first business and owner membership using the SQL in the project README.</p></div>
     </div>
     <p className="auth-help">Keep secret and service-role keys out of the browser and GitHub.</p>

@@ -7,6 +7,7 @@ import type { FormEvent } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 type Customer = { id: string; first_name: string; last_name: string; customer_ref: string };
+type TeamMember = { user_id: string; email: string; role: "supervisor" | "tailor" };
 type MeasurementSession = { id: string; customer_id: string; taken_at: string };
 type OrderStage = "not_started" | "in_production" | "awaiting_fitting" | "ready_for_pickup" | "completed" | "cancelled";
 type OrderItem = { id: string; order_id: string; garment_name: string; description: string | null; quantity: number; unit_price: number | null };
@@ -14,7 +15,7 @@ type Order = {
   id: string; order_ref: string; customer_id: string; measurement_session_id: string | null; stage: OrderStage;
   due_date: string | null; fitting_date: string | null; pickup_date: string | null; delivery_date: string | null;
   fulfillment_method: "pickup" | "delivery"; fulfilled_at: string | null; notes: string | null; created_at: string;
-  customer: Customer | null; items: OrderItem[]; measurements: { id: string; field_name: string; value: number | string; unit: "cm" | "in" }[]; latest_activity: { activity_type: string; note: string | null; created_at: string } | null;
+  customer: Customer | null; items: OrderItem[]; measurements: { id: string; field_name: string; value: number | string; unit: "cm" | "in" }[]; assignments: { user_id: string; email: string }[]; latest_activity: { activity_type: string; note: string | null; created_at: string } | null;
 };
 type NewGarment = { garment_name: string; description: string; quantity: string; unit_price: string };
 const stages: { value: OrderStage; label: string }[] = [
@@ -27,8 +28,8 @@ const currency = new Intl.NumberFormat("en-NG", { style: "currency", currency: "
 function localDate() { const today = new Date(); return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`; }
 function displayDate(value: string | null) { return value ? new Date(`${value}T12:00:00`).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "Not set"; }
 
-export default function OrdersClient({ orders, customers, measurementSessions, canManage }: {
-  orders: Order[]; customers: Customer[]; measurementSessions: MeasurementSession[]; canManage: boolean;
+export default function OrdersClient({ orders, customers, measurementSessions, canManage, team }: {
+  orders: Order[]; customers: Customer[]; measurementSessions: MeasurementSession[]; canManage: boolean; team: TeamMember[];
 }) {
   const router = useRouter();
   const [query, setQuery] = useState("");
@@ -49,6 +50,8 @@ export default function OrdersClient({ orders, customers, measurementSessions, c
   const [savingScheduleId, setSavingScheduleId] = useState<string | null>(null);
   const [scheduleDraft, setScheduleDraft] = useState<{ dueDate: string; fittingDate: string; pickupDate: string; deliveryDate: string; fulfillmentMethod: "pickup" | "delivery" } | null>(null);
   const [feedback, setFeedback] = useState("");
+  const [assignmentSelections, setAssignmentSelections] = useState<Record<string, string>>({});
+  const [savingAssignment, setSavingAssignment] = useState<string | null>(null);
 
   const activeOrders = orders.filter(order => order.stage !== "completed" && order.stage !== "cancelled");
   const overdueOrders = activeOrders.filter(order => order.due_date && order.due_date < localDate());
@@ -106,6 +109,13 @@ export default function OrdersClient({ orders, customers, measurementSessions, c
     const { error } = await createClient().rpc("complete_order_fulfillment", { p_order_id: order.id, p_note: null });
     if (error) { setFeedback("We couldn’t record fulfilment. Refresh the page and try again."); setSavingOrderId(null); return; }
     setSavingOrderId(null); router.refresh();
+  }
+
+  async function changeAssignment(orderId: string, userId: string, action: "assign" | "unassign") {
+    setFeedback(""); setSavingAssignment(`${orderId}:${userId}`);
+    const { error } = await createClient().rpc(action === "assign" ? "assign_order_to_member" : "unassign_order_member", { p_order_id: orderId, p_user_id: userId });
+    if (error) { setFeedback("We couldn’t update the production assignment. Refresh the page and try again."); setSavingAssignment(null); return; }
+    setSavingAssignment(null); router.refresh();
   }
 
   function beginScheduleEdit(order: Order) {
@@ -169,6 +179,7 @@ export default function OrdersClient({ orders, customers, measurementSessions, c
         <div className="order-card-header"><div><span className="order-reference">{order.order_ref}</span><h3>{order.customer ? `${order.customer.first_name} ${order.customer.last_name}` : "Assigned customer"}</h3><span className="customer-reference">{order.customer?.customer_ref ?? "Studio order"}</span></div><span className={`order-stage-pill ${stageTone[order.stage]}`}>{stageLabel}</span></div>
         <div className="order-items-list">{order.items.map(item => <div className="order-item-row" key={item.id}><div><strong>{item.garment_name}</strong>{item.description && <span>{item.description}</span>}</div><span>×{item.quantity}</span>{canManage && item.unit_price !== null && <strong>{currency.format(item.quantity * item.unit_price)}</strong>}</div>)}</div>
         <div className="order-schedule"><span><small>Due</small><strong className={overdue ? "overdue-text" : ""}>{overdue ? `Overdue · ${displayDate(order.due_date)}` : displayDate(order.due_date)}</strong></span>{order.fitting_date && <span><small>Fitting</small><strong>{displayDate(order.fitting_date)}</strong></span>}<span><small>{order.fulfillment_method === "delivery" ? "Delivery" : "Pickup"}</small><strong>{order.fulfillment_method === "delivery" ? displayDate(order.delivery_date) : displayDate(order.pickup_date)}</strong></span>{canManage && <span className="order-total"><small>Order total</small><strong>{currency.format(total)}</strong></span>}</div>
+        <section className="assignment-panel"><div className="assignment-heading"><strong>Production team</strong><span>{order.assignments.length ? order.assignments.map(member => member.email).join(" · ") : "Unassigned"}</span></div>{canManage && <div className="assignment-controls">{team.length ? <><select aria-label={`Choose team member for ${order.order_ref}`} value={assignmentSelections[order.id] ?? ""} onChange={event => setAssignmentSelections(current => ({ ...current, [order.id]: event.target.value }))}><option value="">Choose a supervisor or tailor</option>{team.map(member => <option key={member.user_id} value={member.user_id}>{member.email} · {member.role}</option>)}</select><button className="button button-secondary small-button" disabled={!assignmentSelections[order.id] || savingAssignment?.startsWith(`${order.id}:`)} onClick={() => { const userId = assignmentSelections[order.id]; if (userId) changeAssignment(order.id, userId, "assign"); }}>Assign</button></> : <span className="assignment-empty">Add active supervisors or tailors in Supabase before assigning work.</span>}{order.assignments.map(member => <button key={member.user_id} className="assignment-remove" disabled={savingAssignment === `${order.id}:${member.user_id}`} onClick={() => changeAssignment(order.id, member.user_id, "unassign")} aria-label={`Unassign ${member.email} from ${order.order_ref}`}>Remove {member.email} ×</button>)}</div>}</section>
         {order.measurement_session_id && <details className="order-measurements"><summary>⌁ View linked measurements ({order.measurements.length})</summary><div className="measurement-chips">{order.measurements.map(item => <span key={item.id}><strong>{item.field_name}</strong> {item.value}{item.unit}</span>)}</div></details>}
         {order.notes && <p className="order-notes">{order.notes}</p>}
         {order.latest_activity?.note && <p className="order-activity-note">Latest update: {order.latest_activity.note}</p>}

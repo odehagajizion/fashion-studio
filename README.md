@@ -1,6 +1,6 @@
 # MvendyWendy Fashion Studio
 
-A web application for fashion studio operations. The current build includes the owner dashboard, email and password sign-in, protected dashboard routing, customer records, reusable measurement history, garment orders, production stages, schedule changes, and fulfilment tracking. Supabase migrations define tenant membership, customer access policies, and auditable order workflows.
+A web application for fashion studio operations. The current build includes the owner dashboard, email and password sign-in, protected dashboard routing, customer records, reusable measurement history, garment orders, production stages, schedule changes, fulfilment tracking, and audited tailor assignments. Supabase migrations define tenant membership, customer access policies, and auditable order workflows.
 
 ## Run locally
 
@@ -25,12 +25,16 @@ Open http://localhost:3000.
 
 3. Restart the development server after saving `.env.local`.
 4. In Supabase Authentication, create the owner user. Public sign-up is not exposed by this app; owner and staff accounts should be created or invited through controlled admin workflows.
-5. In the Supabase SQL Editor, run `supabase/migrations/202610290001_initial_business_membership.sql`, then `supabase/migrations/202610290002_customers_measurements.sql`, then `supabase/migrations/202610290003_orders_production.sql`, then `supabase/migrations/202610290004_manual_payments.sql`.
+5. In the Supabase SQL Editor, run `supabase/migrations/202610290001_initial_business_membership.sql`, then `supabase/migrations/202610290002_customers_measurements.sql`, then `supabase/migrations/202610290003_orders_production.sql`, then `supabase/migrations/202610290004_manual_payments.sql`, then `supabase/migrations/202610290005_production_assignments.sql`.
 6. Open `supabase/setup-first-owner.sql`, replace `replace-with-owner-email@example.com` with the owner's Supabase Auth email, then run it in the SQL Editor. This creates the MvendyWendy business and owner membership.
+
+## Add team members
+
+Create a staff login in Supabase Authentication, then use `supabase/add-team-member.sql` in the SQL Editor to link that account to the studio as a tailor or supervisor. The Orders workspace lists active team members and lets owners or supervisors assign and remove production assignments. Assignment changes are retained in order activity history.
 
 The dashboard and customer directory redirect unauthenticated visitors to sign-in and users without an active business membership to the setup page. Owners and supervisors can create, search, edit, and archive customers, and record dated measurement sessions with configurable fields in centimetres or inches. Measurement history is retained when a customer is archived.
 
-Orders support multiple garments, a linked measurement session, production-stage updates, audited schedule changes, and separate planned and actual fulfilment dates. Price and payment records are restricted to owners and supervisors. Manual receipts are append-only, balances are calculated from order lines and payment adjustments, and refunds or reversals are recorded as separate audit entries. Gateway reconciliation and a team assignment interface remain future work.
+Orders support multiple garments, a linked measurement session, production-stage updates, audited schedule changes, and separate planned and actual fulfilment dates. Price and payment records are restricted to owners and supervisors. Manual receipts are append-only, balances are calculated from order lines and payment adjustments, and refunds or reversals are recorded as separate audit entries. Gateway reconciliation and in-app staff invitations remain future work. Existing active supervisors and tailors can be assigned to orders.
 
 ## Security notes
 
