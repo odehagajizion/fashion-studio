@@ -104,3 +104,44 @@ button:focus-visible, a:focus-visible { outline:3px solid #cda233; outline-offse
 /* Printable confirmed-payment receipts */
 .receipt-link { padding:0; border:0; color:#747a38; background:transparent; font:700 9px 'DM Sans',Arial,sans-serif; cursor:pointer; }.receipt-link:hover { color:var(--red); }.receipt-overlay { position:fixed; inset:0; z-index:1000; display:grid; place-items:center; padding:18px; background:#17202b77; }.receipt-dialog { width:min(470px,100%); max-height:calc(100vh - 36px); overflow:auto; padding:15px; border:1px solid #e6e5da; border-radius:14px; background:#f6f6ef; box-shadow:0 16px 60px #1d252b35; }.receipt-dialog-actions { display:flex; justify-content:space-between; align-items:center; gap:9px; color:#69716d; font-size:10px; font-weight:700; }.receipt-dialog-actions .button { min-height:35px; }.receipt-close { display:grid; place-items:center; width:29px; height:29px; font-size:18px; }.printable-receipt { margin:9px 0 13px; padding:25px 24px; border:1px solid #ecebe2; border-radius:9px; background:#fff; }.receipt-brand { display:flex; align-items:center; gap:9px; color:#414919; font:800 15px Manrope,sans-serif; }.receipt-brand .brand-mark { display:grid; place-items:center; width:33px; height:33px; border-radius:10px 10px 10px 3px; color:#fff; background:#656a24; font:700 18px Manrope,sans-serif; }.receipt-brand small { margin-left:auto; color:#9ba08e; font:700 8px 'DM Sans',Arial,sans-serif; letter-spacing:1px; }.receipt-rule { margin:16px 0 20px; border-top:1px dashed #d9dacd; }.printable-receipt>.eyebrow { margin:0 0 5px; color:#818845; font-size:8px; letter-spacing:1px; }.printable-receipt>h2 { margin:0; color:#303a43; font:800 17px Manrope,sans-serif; }.receipt-number { display:flex; justify-content:space-between; gap:10px; margin-top:20px; color:#87908d; font-size:9px; }.receipt-number strong { color:#39434a; font-size:9px; letter-spacing:.4px; }.receipt-amount { display:flex; flex-direction:column; gap:4px; margin-top:12px; padding:13px; border-radius:8px; color:#747e70; background:#f4f5e5; font-size:9px; }.receipt-amount strong { color:#4e561b; font:800 23px Manrope,sans-serif; }.receipt-details { display:flex; flex-direction:column; gap:0; margin:17px 0 0; }.receipt-details>div { display:flex; justify-content:space-between; gap:12px; padding:9px 0; border-bottom:1px solid #f0efe9; font-size:9px; }.receipt-details dt { color:#8b9491; }.receipt-details dd { margin:0; color:#414b52; font-weight:700; text-align:right; }.receipt-footnote { margin:15px 0 0; color:#929994; font-size:8px; line-height:1.55; }.receipt-signoff { margin-top:17px; color:#626a2d; font:700 10px Manrope,sans-serif; text-align:center; }.receipt-dialog>footer { margin-top:9px; }
 @media print { @page { size:auto; margin:16mm; } body * { visibility:hidden!important; }.receipt-overlay,.receipt-dialog,.receipt-dialog * { visibility:visible!important; }.receipt-overlay { position:absolute; inset:0; display:block; padding:0; background:#fff; }.receipt-dialog { position:static; width:100%; max-width:none; max-height:none; overflow:visible; margin:0; padding:0; border:0; border-radius:0; background:#fff; box-shadow:none; }.printable-receipt { margin:0; padding:0; border:0; }.receipt-dialog-actions { display:none!important; } }
+
+/* Per-order activity history */
+.order-activity-timeline { margin-top:10px; padding:9px 11px; border:1px solid #eeeddf; border-radius:8px; background:#fff; }
+.order-activity-timeline summary { color:#656b31; font-size:10px; font-weight:700; cursor:pointer; }
+.order-activity-timeline ol { display:flex; flex-direction:column; gap:0; margin:10px 0 0; padding:0; list-style:none; }
+.order-activity-timeline li { display:flex; flex-direction:column; gap:4px; padding:9px 0; border-top:1px solid #f0efe6; }
+.order-activity-timeline li strong { color:#39424a; font-size:10px; text-transform:capitalize; }
+.order-activity-timeline li span { color:#87908d; font-size:9px; }
+.order-activity-timeline li p { margin:0; color:#666f70; font-size:9px; }
+.order-activity-timeline li small { color:#737d7d; font-size:9px; }
+
+/* Owner team management */
+.team-workspace { display:flex; flex-direction:column; gap:14px; }
+.team-summary { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+.team-summary article { display:flex; flex-direction:column; gap:4px; padding:15px 17px; border:1px solid #eeeddf; border-radius:11px; background:#fff; }
+.team-summary article span,.team-summary article small { color:#858d89; font-size:10px; }
+.team-summary article strong { color:#303943; font:800 23px Manrope,sans-serif; }
+.team-panel { padding:16px; }
+.team-list { display:flex; flex-direction:column; gap:9px; }
+.team-member-card { display:grid; grid-template-columns:minmax(170px,1.4fr) auto auto minmax(270px,2fr); align-items:center; gap:12px; padding:13px; border:1px solid #eeeddf; border-radius:9px; background:#fffef9; }
+.team-member-identity { display:flex; align-items:center; gap:9px; min-width:0; }
+.team-avatar { display:grid; flex:0 0 34px; height:34px; place-items:center; border-radius:50%; color:#59601f; background:#eff0d8; font:700 13px Manrope,sans-serif; }
+.team-member-identity>div { display:flex; min-width:0; flex-direction:column; gap:4px; }
+.team-member-identity strong { overflow:hidden; color:#35404a; font-size:10px; text-overflow:ellipsis; }
+.team-member-identity small,.team-owner-note { color:#929994; font-size:9px; }
+.team-role-badge,.team-status-badge { padding:5px 8px; border-radius:20px; color:#59601f; background:#f0f0dc; font-size:9px; font-weight:700; white-space:nowrap; }
+.team-role-badge.owner { color:#343b42; background:#e9edf0; }
+.team-role-badge.supervisor { color:#5b6324; background:#f0f0dc; }
+.team-role-badge.tailor { color:#80601a; background:#f8efd5; }
+.team-status-badge.inactive { color:#a9443b; background:#fae9e7; }
+.team-member-controls { display:flex; align-items:center; justify-content:flex-end; flex-wrap:wrap; gap:8px; }
+.team-member-controls>label:first-child { display:flex; align-items:center; gap:6px; color:#687279; font-size:9px; }
+.team-member-controls select { min-height:31px; padding:0 7px; border:1px solid #e2e3d7; border-radius:6px; color:#45504e; background:#fff; font:10px 'DM Sans',Arial,sans-serif; }
+.team-access-toggle { display:flex; align-items:center; gap:5px; color:#687279; font-size:9px; white-space:nowrap; }
+.team-access-toggle input { accent-color:#727829; }
+.team-member-controls .button { min-height:30px; }
+.team-invite-note { padding:13px 15px; border:1px solid #e7e4ce; border-radius:9px; color:#666d42; background:#fbfaef; }
+.team-invite-note strong { font:700 11px Manrope,sans-serif; }
+.team-invite-note p { margin:5px 0 0; color:#72796f; font-size:10px; line-height:1.6; }
+@media(max-width:850px) { .team-member-card { grid-template-columns:minmax(0,1fr) auto; }.team-member-controls { grid-column:1/-1; justify-content:flex-start; }.team-role-badge { justify-self:start; } }
+@media(max-width:520px) { .team-member-card { grid-template-columns:1fr auto; gap:8px; }.team-member-identity { grid-column:1/-1; }.team-status-badge { justify-self:start; }.team-member-controls { align-items:flex-start; flex-direction:column; } }
