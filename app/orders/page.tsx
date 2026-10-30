@@ -3,8 +3,6 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import OrdersClient from "./OrdersClient";
 
-export const dynamic = "force-dynamic";
-
 type OrderStage = "not_started" | "in_production" | "awaiting_fitting" | "ready_for_pickup" | "completed" | "cancelled";
 type OrderRow = { id: string; business_id: string; customer_id: string; measurement_session_id: string | null; order_ref: string; stage: OrderStage; due_date: string | null; fitting_date: string | null; pickup_date: string | null; delivery_date: string | null; fulfillment_method: "pickup" | "delivery"; fulfilled_at: string | null; notes: string | null; created_at: string };
 type ItemRow = { id: string; order_id: string; garment_name: string; description: string | null; quantity: number };
@@ -12,7 +10,7 @@ type PriceRow = { order_item_id: string; unit_price: number | string };
 type CustomerRow = { id: string; first_name: string; last_name: string; customer_ref: string };
 type SessionRow = { id: string; customer_id: string; taken_at: string };
 type MeasurementRow = { id: string; measurement_session_id: string; field_name: string; value: number | string; unit: "cm" | "in" };
-type ActivityRow = { order_id: string; activity_type: string; details: Record<string, string>; note: string | null; created_at: string };
+type ActivityRow = { order_id: string; activity_type: string; details: Record<string, unknown>; note: string | null; created_at: string; actor_id: string };
 type TeamMemberRow = { user_id: string; email: string; role: "supervisor" | "tailor" };
 type AssignmentRow = { order_id: string; user_id: string };
 
@@ -43,7 +41,7 @@ export default async function OrdersPage() {
   const [priceResult, customerResult, activityResult, orderMeasurementResult, assignmentResult, teamResult] = await Promise.all([
     canManage && itemIds.length ? supabase.from("order_item_prices").select("order_item_id, unit_price").eq("business_id", businessId).in("order_item_id", itemIds) : Promise.resolve({ data: [] }),
     customerIds.length ? supabase.from("customers").select("id, first_name, last_name, customer_ref").in("id", customerIds) : Promise.resolve({ data: [] }),
-    orderIds.length ? supabase.from("order_activity").select("order_id, activity_type, details, note, created_at").eq("business_id", businessId).in("order_id", orderIds).order("created_at", { ascending: false }) : Promise.resolve({ data: [] }),
+    orderIds.length ? supabase.from("order_activity").select("order_id, activity_type, details, note, created_at, actor_id").eq("business_id", businessId).in("order_id", orderIds).order("created_at", { ascending: false }) : Promise.resolve({ data: [] }),
     measurementSessionIds.length ? supabase.from("measurements").select("id, measurement_session_id, field_name, value, unit").eq("business_id", businessId).in("measurement_session_id", measurementSessionIds) : Promise.resolve({ data: [] }),
     orderIds.length ? supabase.from("order_assignments").select("order_id, user_id").eq("business_id", businessId).in("order_id", orderIds).is("unassigned_at", null) : Promise.resolve({ data: [] }),
     canManage ? supabase.rpc("list_assignable_team_members") : Promise.resolve({ data: [] }),
@@ -57,13 +55,16 @@ export default async function OrdersPage() {
   const teamById = new Map(team.map(member => [member.user_id, member]));
   const customerMap = new Map(customers.map(customer => [customer.id, customer]));
   const priceMap = new Map(prices.map(price => [price.order_item_id, Number(price.unit_price)]));
-  const latestActivity = new Map<string, ActivityRow>();
-  activities.forEach(activity => { if (!latestActivity.has(activity.order_id)) latestActivity.set(activity.order_id, activity); });
   const orders = rawOrders.map(order => ({
     ...order,
     customer: customerMap.get(order.customer_id) ?? null,
     items: rawItems.filter(item => item.order_id === order.id).map(item => ({ ...item, unit_price: priceMap.get(item.id) ?? null })),
-    latest_activity: latestActivity.get(order.id) ?? null,
+
+    activity: activities.filter(activity => activity.order_id === order.id).map(activity => ({
+      ...activity,
+      actor_label: activity.actor_id === auth.claims.sub ? "You" : teamById.get(activity.actor_id)?.email ?? "Studio owner",
+      member_label: activity.activity_type === "assignment_changed" ? teamById.get(String(activity.details.user_id))?.email ?? "Team member" : null,
+    })),
     measurements: orderMeasurements.filter(item => item.measurement_session_id === order.measurement_session_id),
     assignments: assignmentRows.filter(item => item.order_id === order.id).map(item => ({ user_id: item.user_id, email: teamById.get(item.user_id)?.email ?? (item.user_id === auth.claims.sub ? "You" : "Team member") })),
   }));
@@ -84,8 +85,8 @@ export default async function OrdersPage() {
       <Link className="brand" href="/dashboard"><span className="brand-mark">M</span><span>MvendyWendy</span></Link>
       <nav aria-label="Main navigation">
         <div className="nav-group"><p className="group-label">MAIN</p><Link className="nav-item" href="/dashboard"><span className="nav-icon">▦</span>Dashboard</Link><Link className="nav-item" href="/customers"><span className="nav-icon">♙</span>Customers</Link><Link className="nav-item selected" href="/orders" aria-current="page"><span className="nav-icon">▤</span>Orders</Link><span className="nav-item nav-disabled"><span className="nav-icon">▦</span>Calendar</span></div>
-        <div className="nav-group"><p className="group-label">MANAGEMENT</p><Link className="nav-item" href="/customers"><span className="nav-icon">⌁</span>Measurements</Link><span className="nav-item nav-disabled"><span className="nav-icon">◷</span>Production</span><span className="nav-item nav-disabled"><span className="nav-icon">♧</span>Team</span></div>
-        <div className="nav-group"><p className="group-label">FINANCE</p><Link className="nav-item" href="/payments"><span className="nav-icon">₦</span>Payments</Link><span className="nav-item nav-disabled"><span className="nav-icon">▥</span>Reports</span></div>
+        <div className="nav-group"><p className="group-label">MANAGEMENT</p><Link className="nav-item" href="/customers"><span className="nav-icon">⌁</span>Measurements</Link><span className="nav-item nav-disabled"><span className="nav-icon">◷</span>Production</span>{membership.role === "owner" && <Link className="nav-item" href="/team"><span className="nav-icon">♧</span>Team</Link>}</div>
+        <div className="nav-group"><p className="group-label">FINANCE</p><span className="nav-item nav-disabled"><span className="nav-icon">₦</span>Payments</span><span className="nav-item nav-disabled"><span className="nav-icon">▥</span>Reports</span></div>
       </nav>
     </aside>
     <section className="main-area customers-main">

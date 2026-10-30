@@ -3,8 +3,6 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import PaymentsClient from "./PaymentsClient";
 
-export const dynamic = "force-dynamic";
-
 type OrderRow = { id: string; order_ref: string; customer_id: string; stage: string };
 type ItemRow = { id: string; order_id: string; quantity: number };
 type PriceRow = { order_item_id: string; unit_price: number | string };
@@ -80,7 +78,7 @@ export default async function PaymentsPage() {
       <Link className="brand" href="/dashboard"><span className="brand-mark">M</span><span>MvendyWendy</span></Link>
       <nav aria-label="Main navigation">
         <div className="nav-group"><p className="group-label">MAIN</p><Link className="nav-item" href="/dashboard"><span className="nav-icon">▦</span>Dashboard</Link><Link className="nav-item" href="/customers"><span className="nav-icon">♙</span>Customers</Link><Link className="nav-item" href="/orders"><span className="nav-icon">▤</span>Orders</Link><span className="nav-item nav-disabled"><span className="nav-icon">▦</span>Calendar</span></div>
-        <div className="nav-group"><p className="group-label">MANAGEMENT</p><Link className="nav-item" href="/customers"><span className="nav-icon">⌁</span>Measurements</Link><span className="nav-item nav-disabled"><span className="nav-icon">◷</span>Production</span><span className="nav-item nav-disabled"><span className="nav-icon">♧</span>Team</span></div>
+        <div className="nav-group"><p className="group-label">MANAGEMENT</p><Link className="nav-item" href="/customers"><span className="nav-icon">⌁</span>Measurements</Link><span className="nav-item nav-disabled"><span className="nav-icon">◷</span>Production</span>{membership.role === "owner" && <Link className="nav-item" href="/team"><span className="nav-icon">♧</span>Team</Link>}</div>
         <div className="nav-group"><p className="group-label">FINANCE</p><Link className="nav-item selected" href="/payments" aria-current="page"><span className="nav-icon">₦</span>Payments</Link><span className="nav-item nav-disabled"><span className="nav-icon">▥</span>Reports</span></div>
       </nav>
     </aside>

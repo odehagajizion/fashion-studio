@@ -15,8 +15,9 @@ type Order = {
   id: string; order_ref: string; customer_id: string; measurement_session_id: string | null; stage: OrderStage;
   due_date: string | null; fitting_date: string | null; pickup_date: string | null; delivery_date: string | null;
   fulfillment_method: "pickup" | "delivery"; fulfilled_at: string | null; notes: string | null; created_at: string;
-  customer: Customer | null; items: OrderItem[]; measurements: { id: string; field_name: string; value: number | string; unit: "cm" | "in" }[]; assignments: { user_id: string; email: string }[]; latest_activity: { activity_type: string; note: string | null; created_at: string } | null;
+  customer: Customer | null; items: OrderItem[]; measurements: { id: string; field_name: string; value: number | string; unit: "cm" | "in" }[]; assignments: { user_id: string; email: string }[]; activity: Activity[];
 };
+type Activity = { activity_type: string; details: Record<string, unknown>; note: string | null; created_at: string; actor_label: string; member_label: string | null };
 type NewGarment = { garment_name: string; description: string; quantity: string; unit_price: string };
 const stages: { value: OrderStage; label: string }[] = [
   { value: "not_started", label: "Not started" }, { value: "in_production", label: "In production" },
@@ -27,6 +28,26 @@ const stageTone: Record<OrderStage, string> = { not_started: "neutral", in_produ
 const currency = new Intl.NumberFormat("en-NG", { style: "currency", currency: "NGN", maximumFractionDigits: 0 });
 function localDate() { const today = new Date(); return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`; }
 function displayDate(value: string | null) { return value ? new Date(`${value}T12:00:00`).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "Not set"; }
+function activityChanges(item: Activity) {
+  if (item.activity_type !== "schedule_changed") return [];
+  const before = item.details.before as Record<string, unknown> | undefined;
+  const after = item.details.after as Record<string, unknown> | undefined;
+  if (!before || !after) return [];
+  const labels: Record<string, string> = { due_date: "Promised completion", fitting_date: "Fitting", pickup_date: "Pickup", delivery_date: "Delivery", fulfillment_method: "Fulfilment" };
+  return Object.keys(labels).filter(key => before[key] !== after[key]).map(key => {
+    const format = (value: unknown) => value == null ? "Not set" : key === "fulfillment_method" ? String(value).replaceAll("_", " ") : displayDate(String(value));
+    return labels[key] + ": " + format(before[key]) + " → " + format(after[key]);
+  });
+}
+function activityTitle(item: Activity) {
+  const details = item.details;
+  if (item.activity_type === "created") return "Order created";
+  if (item.activity_type === "stage_changed") return "Stage changed: " + String(details.from ?? "—").replaceAll("_", " ") + " → " + String(details.to ?? "—").replaceAll("_", " ");
+  if (item.activity_type === "schedule_changed") return "Schedule updated";
+  if (item.activity_type === "fulfilled") return "Order fulfilled";
+  if (item.activity_type === "assignment_changed") return (details.action === "assigned" ? "Assigned " : "Unassigned ") + (item.member_label ?? "team member");
+  return "Order updated";
+}
 
 export default function OrdersClient({ orders, customers, measurementSessions, canManage, team }: {
   orders: Order[]; customers: Customer[]; measurementSessions: MeasurementSession[]; canManage: boolean; team: TeamMember[];
@@ -182,7 +203,8 @@ export default function OrdersClient({ orders, customers, measurementSessions, c
         <section className="assignment-panel"><div className="assignment-heading"><strong>Production team</strong><span>{order.assignments.length ? order.assignments.map(member => member.email).join(" · ") : "Unassigned"}</span></div>{canManage && <div className="assignment-controls">{team.length ? <><select aria-label={`Choose team member for ${order.order_ref}`} value={assignmentSelections[order.id] ?? ""} onChange={event => setAssignmentSelections(current => ({ ...current, [order.id]: event.target.value }))}><option value="">Choose a supervisor or tailor</option>{team.map(member => <option key={member.user_id} value={member.user_id}>{member.email} · {member.role}</option>)}</select><button className="button button-secondary small-button" disabled={!assignmentSelections[order.id] || savingAssignment?.startsWith(`${order.id}:`)} onClick={() => { const userId = assignmentSelections[order.id]; if (userId) changeAssignment(order.id, userId, "assign"); }}>Assign</button></> : <span className="assignment-empty">Add active supervisors or tailors in Supabase before assigning work.</span>}{order.assignments.map(member => <button key={member.user_id} className="assignment-remove" disabled={savingAssignment === `${order.id}:${member.user_id}`} onClick={() => changeAssignment(order.id, member.user_id, "unassign")} aria-label={`Unassign ${member.email} from ${order.order_ref}`}>Remove {member.email} ×</button>)}</div>}</section>
         {order.measurement_session_id && <details className="order-measurements"><summary>⌁ View linked measurements ({order.measurements.length})</summary><div className="measurement-chips">{order.measurements.map(item => <span key={item.id}><strong>{item.field_name}</strong> {item.value}{item.unit}</span>)}</div></details>}
         {order.notes && <p className="order-notes">{order.notes}</p>}
-        {order.latest_activity?.note && <p className="order-activity-note">Latest update: {order.latest_activity.note}</p>}
+
+        {order.activity.length > 0 && <details className="order-activity-timeline"><summary>Activity history ({order.activity.length})</summary><ol>{order.activity.map((item, index) => <li key={item.created_at + "-" + index}><strong>{activityTitle(item)}</strong>{activityChanges(item).map(change => <small className="activity-change" key={change}>{change}</small>)}<span>{item.actor_label} · <time dateTime={item.created_at}>{new Date(item.created_at).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}</time></span>{item.note && <p>{item.note}</p>}</li>)}</ol></details>}
         <div className="order-card-actions">{order.fulfilled_at ? <span className="fulfillment-confirmed">✓ {order.fulfillment_method === "delivery" ? "Delivered" : "Collected"} · {new Date(order.fulfilled_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</span> : <label className="stage-select-label">Production stage<select aria-label={`Change stage for ${order.order_ref}`} value={order.stage} disabled={savingOrderId === order.id || order.stage === "cancelled"} onChange={event => changeStage(order.id, event.target.value as OrderStage)}>{stageOptions.map(item => <option value={item.value} key={item.value}>{item.value === "ready_for_pickup" && order.fulfillment_method === "delivery" ? "Ready for delivery" : item.label}</option>)}</select></label>}{canManage && !order.fulfilled_at && order.stage !== "cancelled" && <button className="button button-secondary small-button" onClick={() => beginScheduleEdit(order)}>Edit dates</button>}{canManage && order.stage === "ready_for_pickup" && !order.fulfilled_at && <button className="button button-secondary fulfill-button" disabled={savingOrderId === order.id} onClick={() => completeFulfillment(order)}>{order.fulfillment_method === "delivery" ? "Mark delivered" : "Mark collected"}</button>}</div>
 {canManage && scheduleEditingId === order.id && scheduleDraft && <form className="schedule-editor" onSubmit={event => saveSchedule(event, order.id)}>
   <label>Promised completion<input type="date" value={scheduleDraft.dueDate} onChange={event => setScheduleDraft(current => current ? { ...current, dueDate: event.target.value } : current)} /></label>

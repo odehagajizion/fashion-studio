@@ -3,7 +3,6 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import CustomerManager from "./CustomerManager";
 
-export const dynamic = "force-dynamic";
 
 type CustomerRow = {
   id: string;

@@ -31,6 +31,7 @@ export default function PaymentsClient({ orders, receivableOrders, history, tota
   const [reason, setReason] = useState("");
   const [query, setQuery] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [feedback, setFeedback] = useState("");
   const selectedOrder = receivableOrders.find(order => order.id === orderId);
   const visibleHistory = useMemo(() => {
@@ -59,6 +60,20 @@ export default function PaymentsClient({ orders, receivableOrders, history, tota
     setIsSaving(false); closePaymentForm(); router.refresh();
   }
 
+  async function startPaystackCheckout() {
+    setFeedback("");
+    const numericAmount = Number(amount);
+    if (!orderId || !selectedOrder || numericAmount <= 0 || numericAmount > selectedOrder.balance) {
+      setFeedback("Choose an order and enter an amount up to its current balance."); return;
+    }
+    setIsCheckingOut(true);
+    try {
+      const response = await fetch("/api/paystack/checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ orderId, amount: numericAmount }) });
+      const result = await response.json();
+      if (!response.ok || !result.authorizationUrl) { setFeedback(result.error ?? "Could not start Paystack checkout."); setIsCheckingOut(false); return; }
+      window.location.assign(result.authorizationUrl);
+    } catch { setFeedback("Could not connect to the checkout service. Try again."); setIsCheckingOut(false); }
+  }
   async function recordAdjustment(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); setFeedback("");
     if (!adjusting || !adjusting.payment_id) return;
@@ -94,7 +109,7 @@ export default function PaymentsClient({ orders, receivableOrders, history, tota
         <label>Payment method<select value={method} onChange={event => setMethod(event.target.value)}><option value="bank_transfer">Bank transfer</option><option value="cash">Cash</option><option value="card">Card</option><option value="other">Other</option></select></label>
         <label>Reference <span className="optional">Optional</span><input maxLength={120} value={reference} onChange={event => setReference(event.target.value)} placeholder="Transfer or receipt reference" /></label>
         <label className="form-wide">Note <span className="optional">Optional</span><textarea rows={2} maxLength={1000} value={note} onChange={event => setNote(event.target.value)} /></label>
-        <div className="form-actions form-wide"><button type="button" className="button button-secondary" onClick={closePaymentForm}>Cancel</button><button type="submit" className="button button-primary" disabled={isSaving}>{isSaving ? "Saving…" : "Record confirmed payment"}</button></div>
+        <div className="form-actions form-wide"><button type="button" className="button button-secondary" onClick={closePaymentForm}>Cancel</button><button type="button" className="button button-secondary" disabled={isCheckingOut || isSaving} onClick={startPaystackCheckout}>{isCheckingOut ? "Connecting to Paystack…" : "Pay online with Paystack"}</button><button type="submit" className="button button-primary" disabled={isSaving || isCheckingOut}>{isSaving ? "Saving…" : "Record confirmed payment"}</button></div>
       </form>}
     </section>}
 

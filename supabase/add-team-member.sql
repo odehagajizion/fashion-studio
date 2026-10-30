@@ -2,8 +2,8 @@
 -- Replace both email addresses and set the requested role below.
 DO $$
 DECLARE
-  owner_email text := 'replace-with-owner-email@example.com';
-  member_email text := 'replace-with-team-member-email@example.com';
+  owner_email text := 'odehagajizion@gmail.com';
+  member_email text := 'mvendywendy@gmail.com';
   member_role public.business_member_role := 'tailor'; -- 'tailor' or 'supervisor'
   owner_user_id uuid;
   member_user_id uuid;
