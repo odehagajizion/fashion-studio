@@ -39,6 +39,7 @@ export default function LoginPage() {
       <input id="email" name="email" type="email" autoComplete="username" value={email} onChange={event => setEmail(event.target.value)} required />
       <label htmlFor="password">Password</label>
       <input id="password" name="password" type="password" autoComplete="current-password" value={password} onChange={event => setPassword(event.target.value)} required />
+      <Link className="text-link" href="/forgot-password">Forgot password?</Link>
       {errorMessage && <p className="auth-error" role="alert">{errorMessage}</p>}
       <button className="button button-primary auth-submit" type="submit" disabled={isSubmitting}>{isSubmitting ? "Signing in…" : "Sign in"}</button>
     </form>
