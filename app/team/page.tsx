@@ -3,7 +3,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import TeamClient from "./TeamClient";
 
-type TeamMember = { user_id: string; email: string; role: "owner" | "supervisor" | "tailor"; is_active: boolean; created_at: string };
+type TeamMember = { user_id: string; email: string; role: "owner" | "supervisor" | "tailor"; is_active: boolean; created_at: string; invite_pending: boolean };
 
 export default async function TeamPage() {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY) redirect("/setup?reason=environment");
