@@ -3,6 +3,9 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import CalendarClient from "./CalendarClient";
 
+// Add this line to force Vercel to build this dynamically as a server page
+export const dynamic = "force-dynamic";
+
 type OrderRow = { id: string; order_ref: string; customer_id: string; stage: string; due_date: string | null; fitting_date: string | null; pickup_date: string | null; delivery_date: string | null; fulfillment_method: "pickup" | "delivery" };
 type CustomerRow = { id: string; first_name: string; last_name: string };
 type CalendarEvent = { id: string; order_id: string; order_ref: string; customer_name: string; date: string; type: "deadline" | "fitting" | "pickup" | "delivery"; title: string; stage: string };
