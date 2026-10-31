@@ -8,8 +8,8 @@ type ItemRow = { id: string; order_id: string; quantity: number };
 type PriceRow = { order_item_id: string; unit_price: number | string };
 type CustomerRow = { id: string; first_name: string; last_name: string };
 type PaymentRow = { id: string; order_id: string; amount: number | string; method: string; reference: string | null; note: string | null; received_at: string; created_at: string };
-type AdjustmentRow = { id: string; payment_id: string; adjustment_type: "refund" | "reversal"; amount: number | string; reason: string; created_at: string };
-type PaymentEvent = { id: string; kind: "payment" | "adjustment"; payment_id: string | null; order_id: string; order_ref: string; customer_name: string; amount: number; method: string | null; reference: string | null; note: string | null; created_at: string; remaining_adjustable: number };
+type AdjustmentRow = { id: string; payment_id: string | null; adjustment_type: "refund" | "reversal"; amount: number | string; reason: string; created_at: string };
+type PaymentEvent = { id: string; kind: string; payment_id: string | null; order_id: string; order_ref: string; customer_name: string; amount: number; method: string | null; reference: string | null; note: string | null; created_at: string; remaining_adjustable: number };
 type OrderChoice = { id: string; order_ref: string; customer_name: string; stage: string; total: number; received: number; balance: number };
 
 export default async function PaymentsPage() {
