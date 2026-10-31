@@ -80,7 +80,7 @@ export default async function PaymentsPage() {
       <nav aria-label="Main navigation">
         <div className="nav-group"><p className="group-label">MAIN</p><Link className="nav-item" href="/dashboard"><span className="nav-icon">▦</span>Dashboard</Link><Link className="nav-item" href="/customers"><span className="nav-icon">♙</span>Customers</Link><Link className="nav-item" href="/orders"><span className="nav-icon">▤</span>Orders</Link><span className="nav-item nav-disabled"><span className="nav-icon">▦</span>Calendar</span></div>
         <div className="nav-group"><p className="group-label">MANAGEMENT</p><Link className="nav-item" href="/customers"><span className="nav-icon">⌁</span>Measurements</Link><span className="nav-item nav-disabled"><span className="nav-icon">◷</span>Production</span>{membership.role === "owner" && <Link className="nav-item" href="/team"><span className="nav-icon">♧</span>Team</Link>}</div>
-        <div className="nav-group"><p className="group-label">FINANCE</p><Link className="nav-item selected" href="/payments" aria-current="page"><span className="nav-icon">₦</span>Payments</Link><span className="nav-item nav-disabled"><span className="nav-icon">▥</span>Reports</span></div>
+        <div className="nav-group"><p className="group-label">FINANCE</p><Link className="nav-item selected" href="/payments" aria-current="page"><span className="nav-icon">₦</span>Payments</Link>{membership.role === "owner" && <Link className="nav-item" href="/expenses"><span className="nav-icon">−₦</span>Expenses</Link>}<span className="nav-item nav-disabled"><span className="nav-icon">▥</span>Reports</span></div>
       </nav>
     </aside>
     <section className="main-area customers-main">

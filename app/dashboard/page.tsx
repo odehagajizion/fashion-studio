@@ -31,11 +31,13 @@ export default async function DashboardPage() {
   const businessId = membership.business_id as string;
   const role = membership.role as string;
   const canViewFinance = role === "owner" || role === "supervisor";
-  const [{ data: customers, error: customerError }, { data: orderRows, error: orderError }, { data: paymentRows, error: paymentError }, { data: adjustmentRows, error: adjustmentError }] = await Promise.all([
+  const isOwner = role === "owner";
+  const [{ data: customers, error: customerError }, { data: orderRows, error: orderError }, { data: paymentRows, error: paymentError }, { data: adjustmentRows, error: adjustmentError }, { data: expenseRows, error: expenseError }] = await Promise.all([
     supabase.from("customers").select("id, first_name, last_name").eq("business_id", businessId).is("archived_at", null),
     supabase.from("orders").select("id, order_ref, customer_id, stage, due_date, created_at, fulfillment_method").eq("business_id", businessId).order("created_at", { ascending: false }),
     canViewFinance ? supabase.from("payments").select("id, order_id, amount, method, received_at, created_at").eq("business_id", businessId).order("received_at", { ascending: false }) : Promise.resolve({ data: [], error: null }),
     canViewFinance ? supabase.from("payment_adjustments").select("id, payment_id, adjustment_type, amount, created_at").eq("business_id", businessId).order("created_at", { ascending: false }) : Promise.resolve({ data: [], error: null }),
+    isOwner ? supabase.from("studio_expenses").select("expense_date, amount, order_id").eq("business_id", businessId) : Promise.resolve({ data: [], error: null }),
   ]);
   const orders = orderRows ?? [];
   const orderIds = orders.map(order => order.id);
@@ -65,11 +67,16 @@ export default async function DashboardPage() {
   const stageKeys = ["not_started", "in_production", "awaiting_fitting", "ready_for_pickup"];
   const stages = stageKeys.map(key => ({ name: stageNames[key], count: activeOrders.filter(order => order.stage === key).length, color: stageColors[key] }));
   const byCustomer = new Map((customers ?? []).map(customer => [customer.id, `${customer.first_name} ${customer.last_name}`]));
+  const expenseCostsByOrder = new Map<string, number>();
+  if (isOwner) (expenseRows ?? []).forEach(expense => { if (expense.order_id) expenseCostsByOrder.set(expense.order_id, (expenseCostsByOrder.get(expense.order_id) ?? 0) + Number(expense.amount)); });
   const deadlineLimit = new Date(Date.parse(`${businessToday}T12:00:00Z`) + 14 * 86400000).toISOString().slice(0, 10);
   const deadlines = activeOrders.filter(order => order.due_date && order.due_date <= deadlineLimit).sort((a, b) => (a.due_date ?? "").localeCompare(b.due_date ?? "")).slice(0, 4).map(order => {
     const days = Math.round((Date.parse(`${order.due_date}T12:00:00Z`) - Date.parse(`${businessToday}T12:00:00Z`)) / 86400000);
     return { ref: order.order_ref, name: byCustomer.get(order.customer_id) ?? "Assigned customer", due: days < 0 ? `${Math.abs(days)} ${Math.abs(days) === 1 ? "day" : "days"} overdue` : days === 0 ? "Due today" : days === 1 ? "Due tomorrow" : `Due in ${days} days`, tone: days < 0 ? "late" : days === 0 ? "today" : "soon" };
   });
+  const orderProfits = isOwner ? orders.map(order => ({ ref: order.order_ref, name: byCustomer.get(order.customer_id) ?? "Assigned customer", total: totalsByOrder.get(order.id) ?? 0, costs: expenseCostsByOrder.get(order.id) ?? 0, created_at: order.created_at }))
+    .filter(order => order.costs > 0).sort((a, b) => b.created_at.localeCompare(a.created_at)).slice(0, 3)
+    .map(order => ({ ref: order.ref, name: order.name, profit: order.total - order.costs })) : [];
   const recentOrders = orders.slice(0, 3).map(order => ({
     ref: order.order_ref,
     name: byCustomer.get(order.customer_id) ?? "Assigned customer",
@@ -82,13 +89,17 @@ export default async function DashboardPage() {
   const currentMonth = monthKey(now);
   const currentMonthParts = dateParts(now);
   const monthDates = Array.from({ length: 6 }, (_, index) => new Date(Date.UTC(Number(currentMonthParts.year), Number(currentMonthParts.month) - 6 + index, 1)));
-  const paymentsByMonth = monthDates.map(date => ({ key: monthKey(date), label: new Intl.DateTimeFormat("en", { month: "short", timeZone: "UTC" }).format(date), amount: 0 }));
+  const paymentsByMonth = monthDates.map(date => ({ key: monthKey(date), label: new Intl.DateTimeFormat("en", { month: "short", timeZone: "UTC" }).format(date), amount: 0, expenses: 0, net: 0 }));
   const monthlyIndex = new Map(paymentsByMonth.map((month, index) => [month.key, index]));
   if (canViewFinance) {
     paymentRowsSafe.forEach(payment => { const index = monthlyIndex.get(monthKey(payment.received_at)); if (index !== undefined) paymentsByMonth[index].amount += Number(payment.amount); });
     adjustments.forEach(adjustment => { const index = monthlyIndex.get(monthKey(adjustment.created_at)); if (index !== undefined) paymentsByMonth[index].amount -= Number(adjustment.amount); });
+    if (isOwner) (expenseRows ?? []).forEach(expense => { const index = monthlyIndex.get(String(expense.expense_date).slice(0, 7)); if (index !== undefined) paymentsByMonth[index].expenses += Number(expense.amount); });
+    paymentsByMonth.forEach(month => { month.net = month.amount - month.expenses; });
   }
   const receivedThisMonth = canViewFinance ? (paymentsByMonth.find(month => month.key === currentMonth)?.amount ?? 0) : 0;
+  const expensesThisMonth = isOwner ? (paymentsByMonth.find(month => month.key === currentMonth)?.expenses ?? 0) : 0;
+  const netCashflowThisMonth = receivedThisMonth - expensesThisMonth;
   const outstanding = canViewFinance ? activeOrders.reduce((sum, order) => sum + Math.max(0, (totalsByOrder.get(order.id) ?? 0) - (netReceivedByOrder.get(order.id) ?? 0)), 0) : 0;
   const orderById = new Map(orders.map(order => [order.id, order]));
   const recentActivity = canViewFinance ? [
@@ -103,9 +114,9 @@ export default async function DashboardPage() {
   }) : [];
 
   return <DashboardClient data={{
-    role, canViewFinance, totalCustomers: customers?.length ?? 0, activeOrders: activeOrders.length,
-    overdueOrders: overdueOrders.length, receivedThisMonth, outstanding, paymentsByMonth,
-    stages, deadlines, recentOrders, recentPayments: recentActivity,
-    dataError: Boolean(customerError || orderError || paymentError || adjustmentError || itemsResult.error || pricesResult.error),
+    role, canViewFinance, isOwner, totalCustomers: customers?.length ?? 0, activeOrders: activeOrders.length,
+    overdueOrders: overdueOrders.length, receivedThisMonth, expensesThisMonth, netCashflowThisMonth, outstanding, paymentsByMonth,
+    stages, deadlines, recentOrders, orderProfits, recentPayments: recentActivity,
+    dataError: Boolean(customerError || orderError || paymentError || adjustmentError || (isOwner && expenseError) || itemsResult.error || pricesResult.error),
   }} />;
 }

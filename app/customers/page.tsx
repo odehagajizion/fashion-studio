@@ -61,7 +61,7 @@ export default async function CustomersPage() {
           <span className="nav-item nav-disabled"><span className="nav-icon">▦</span>Calendar</span>
         </div>
         <div className="nav-group"><p className="group-label">MANAGEMENT</p><span className="nav-item nav-disabled"><span className="nav-icon">⌁</span>Measurements</span><span className="nav-item nav-disabled"><span className="nav-icon">◷</span>Production</span><span className="nav-item nav-disabled"><span className="nav-icon">♧</span>Team</span></div>
-        <div className="nav-group"><p className="group-label">FINANCE</p><span className="nav-item nav-disabled"><span className="nav-icon">₦</span>Payments</span><span className="nav-item nav-disabled"><span className="nav-icon">▥</span>Reports</span></div>
+        <div className="nav-group"><p className="group-label">FINANCE</p><span className="nav-item nav-disabled"><span className="nav-icon">₦</span>Payments</span>{membership.role === "owner" && <Link className="nav-item" href="/expenses"><span className="nav-icon">−₦</span>Expenses</Link>}<span className="nav-item nav-disabled"><span className="nav-icon">▥</span>Reports</span></div>
       </nav>
     </aside>
     <section className="main-area customers-main">

@@ -25,7 +25,7 @@ Open http://localhost:3000.
 
 3. Restart the development server after saving `.env.local`.
 4. In Supabase Authentication, create the owner user. Public sign-up is not exposed by this app; owner and staff accounts should be created or invited through controlled admin workflows.
-5. In the Supabase SQL Editor, run `supabase/migrations/202610290001_initial_business_membership.sql`, then `supabase/migrations/202610290002_customers_measurements.sql`, then `supabase/migrations/202610290003_orders_production.sql`, then `supabase/migrations/202610290004_manual_payments.sql`, then `supabase/migrations/202610290005_production_assignments.sql`, then `supabase/migrations/202610290007_team_management.sql`, then `supabase/migrations/202610290008_team_invitations.sql`. The Paystack checkout migration is separate and can be applied when you are ready to configure the gateway.
+5. In the Supabase SQL Editor, run `supabase/migrations/202610290001_initial_business_membership.sql`, then `supabase/migrations/202610290002_customers_measurements.sql`, then `supabase/migrations/202610290003_orders_production.sql`, then `supabase/migrations/202610290004_manual_payments.sql`, then `supabase/migrations/202610290005_production_assignments.sql`, then `supabase/migrations/202610290007_team_management.sql`, then `supabase/migrations/202610290008_team_invitations.sql`, then `supabase/migrations/202610290009_expenses.sql`. The Paystack checkout migration is separate and can be applied when you are ready to configure the gateway.
 6. Open `supabase/setup-first-owner.sql`, replace `replace-with-owner-email@example.com` with the owner's Supabase Auth email, then run it in the SQL Editor. This creates the MvendyWendy business and owner membership.
 
 ## Add team members
@@ -37,6 +37,8 @@ The Orders workspace lists active team members and lets owners or supervisors as
 Orders support multiple garments, a linked measurement session, production-stage updates, audited schedule changes, and separate planned and actual fulfilment dates. Price and payment records are restricted to owners and supervisors. Manual receipts are append-only, balances are calculated from order lines and payment adjustments, and refunds or reversals are recorded as separate audit entries. Gateway reconciliation remains future work. Staff invitations use Supabase Auth with owner-only role assignment. Existing active supervisors and tailors can be assigned to orders.
 
 The owner-only Team workspace lists linked accounts and lets you change supervisor or tailor roles, pause access, and restore access. Pausing a member clears their active order assignments and records the changes in an audit table. New user invitations use the owner-only Team workspace and Supabase Auth.
+
+The owner-only Expenses workspace records dated studio costs by category, optionally links them to an order, and supports private receipt photos. Expense edits are audited. Reports distinguish cash received minus expenses from estimated order gross profit (order value minus costs tagged to that order); unlinked expenses are treated as operating costs.
 
 ## Security notes
 

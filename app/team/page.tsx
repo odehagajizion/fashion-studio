@@ -24,7 +24,7 @@ export default async function TeamPage() {
       <nav aria-label="Main navigation">
         <div className="nav-group"><p className="group-label">MAIN</p><Link className="nav-item" href="/dashboard"><span className="nav-icon">▦</span>Dashboard</Link><Link className="nav-item" href="/customers"><span className="nav-icon">♙</span>Customers</Link><Link className="nav-item" href="/orders"><span className="nav-icon">▤</span>Orders</Link><Link className="nav-item" href="/calendar"><span className="nav-icon">▦</span>Calendar</Link></div>
         <div className="nav-group"><p className="group-label">MANAGEMENT</p><Link className="nav-item" href="/customers"><span className="nav-icon">⌁</span>Measurements</Link><Link className="nav-item" href="/orders"><span className="nav-icon">◷</span>Production</Link><Link className="nav-item selected" href="/team" aria-current="page"><span className="nav-icon">♧</span>Team</Link></div>
-        <div className="nav-group"><p className="group-label">FINANCE</p><Link className="nav-item" href="/payments"><span className="nav-icon">₦</span>Payments</Link><Link className="nav-item" href="/reports"><span className="nav-icon">▥</span>Reports</Link></div>
+        <div className="nav-group"><p className="group-label">FINANCE</p><Link className="nav-item" href="/payments"><span className="nav-icon">₦</span>Payments</Link><Link className="nav-item" href="/expenses"><span className="nav-icon">−₦</span>Expenses</Link><Link className="nav-item" href="/reports"><span className="nav-icon">▥</span>Reports</Link></div>
       </nav>
     </aside>
     <section className="main-area customers-main">
