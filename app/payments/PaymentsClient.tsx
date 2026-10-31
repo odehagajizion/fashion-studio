@@ -7,7 +7,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 
 type OrderChoice = { id: string; order_ref: string; customer_name: string; stage: string; total: number; received: number; balance: number };
-type PaymentEvent = { id: string; kind: "payment" | "adjustment"; payment_id: string | null; order_id: string; order_ref: string; customer_name: string; amount: number; method: string | null; reference: string | null; note: string | null; created_at: string; remaining_adjustable: number };
+type PaymentEvent = { id: string; kind: string; payment_id: string | null; order_id: string; order_ref: string; customer_name: string; amount: number; method: string | null; reference: string | null; note: string | null; created_at: string; remaining_adjustable: number };
 const currency = new Intl.NumberFormat("en-NG", { style: "currency", currency: "NGN", maximumFractionDigits: 0 });
 const methodLabels: Record<string, string> = { cash: "Cash", bank_transfer: "Bank transfer", card: "Card", other: "Other" };
 function localDate() { const today = new Date(); return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`; }
