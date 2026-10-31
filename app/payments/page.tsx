@@ -49,7 +49,7 @@ export default async function PaymentsPage() {
   const orderTotals = new Map<string, number>();
   const priceByItem = new Map(prices.map(price => [price.order_item_id, Number(price.unit_price)]));
   items.forEach(item => orderTotals.set(item.order_id, (orderTotals.get(item.order_id) ?? 0) + item.quantity * (priceByItem.get(item.id) ?? 0)));
-  const adjustmentByPayment = new Map<string, number>();
+  const adjustmentByPayment = new Map<string | null, number>();
   adjustments.forEach(adjustment => adjustmentByPayment.set(adjustment.payment_id, (adjustmentByPayment.get(adjustment.payment_id) ?? 0) + Number(adjustment.amount)));
   const paidByOrder = new Map<string, number>();
   payments.forEach(payment => paidByOrder.set(payment.order_id, (paidByOrder.get(payment.order_id) ?? 0) + Number(payment.amount)));
@@ -61,18 +61,19 @@ export default async function PaymentsPage() {
     const received = (paidByOrder.get(order.id) ?? 0) - (adjustedByOrder.get(order.id) ?? 0);
     return { id: order.id, order_ref: order.order_ref, customer_name: byCustomer.get(order.customer_id) ?? "Customer", stage: order.stage, total, received, balance: Math.max(0, total - received) };
   });
-  const history: PaymentEvent[] = payments.map(payment => {
+  const history: PaymentEvent[] = payments.map((payment): PaymentEvent => {
     const order = byOrder.get(payment.order_id);
     return { id: payment.id, kind: "payment", payment_id: payment.id, order_id: payment.order_id, order_ref: order?.order_ref ?? "Order", customer_name: order ? byCustomer.get(order.customer_id) ?? "Customer" : "Customer", amount: Number(payment.amount), method: payment.method, reference: payment.reference, note: payment.note, created_at: payment.received_at, remaining_adjustable: Number(payment.amount) - (adjustmentByPayment.get(payment.id) ?? 0) };
-  }).concat(adjustments.map(adjustment => {
+  }).concat(adjustments.map((adjustment): PaymentEvent => {
     const payment = payments.find(item => item.id === adjustment.payment_id);
     const order = payment ? byOrder.get(payment.order_id) : null;
-    return { id: adjustment.id, kind: "adjustment" as const, payment_id: null, order_id: order?.id ?? "", order_ref: order?.order_ref ?? "Order", customer_name: order ? byCustomer.get(order.customer_id) ?? "Customer" : "Customer", amount: Number(adjustment.amount), method: adjustment.adjustment_type, reference: null, note: adjustment.reason, created_at: adjustment.created_at, remaining_adjustable: 0 };
+    return { id: adjustment.id, kind: "adjustment", payment_id: null, order_id: order?.id ?? "", order_ref: order?.order_ref ?? "Order", customer_name: order ? byCustomer.get(order.customer_id) ?? "Customer" : "Customer", amount: Number(adjustment.amount), method: adjustment.adjustment_type, reference: null, note: adjustment.reason, created_at: adjustment.created_at, remaining_adjustable: 0 };
   })).sort((a, b) => b.created_at.localeCompare(a.created_at));
+  
   const totalReceived = payments.reduce((sum, payment) => sum + Number(payment.amount), 0) - adjustments.reduce((sum, adjustment) => sum + Number(adjustment.amount), 0);
   const outstanding = orderChoices.filter(order => order.stage !== "cancelled").reduce((sum, order) => sum + order.balance, 0);
   const receivableOrders = orderChoices.filter(order => order.stage !== "cancelled" && order.balance > 0);
-
+  
   return <main className="app-shell">
     <aside className="sidebar">
       <Link className="brand" href="/dashboard"><span className="brand-mark">M</span><span>MvendyWendy</span></Link>
