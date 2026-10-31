@@ -45,6 +45,10 @@ export default async function DashboardPage() {
     ? await supabase.from("order_items").select("id, order_id, quantity").eq("business_id", businessId).in("order_id", orderIds)
     : { data: [], error: null };
   const itemRows = itemsResult.data ?? [];
+  const discountResult = canViewFinance && orderIds.length ? await supabase.from("order_voucher_discounts").select("order_id, discount_amount").eq("business_id", businessId).in("order_id", orderIds) : { data: [], error: null };
+  const expressResult = canViewFinance && orderIds.length ? await supabase.from("order_express_charges").select("order_id, amount").eq("business_id", businessId).in("order_id", orderIds) : { data: [], error: null };
+  const expressByOrder = new Map((expressResult.data ?? []).map(row => [row.order_id, Number(row.amount)]));
+  const discountByOrder = new Map((discountResult.data ?? []).map(row => [row.order_id, Number(row.discount_amount)]));
   const itemIds = itemRows.map(item => item.id);
   const pricesResult = canViewFinance && itemIds.length ? await supabase.from("order_item_prices").select("order_item_id, unit_price").eq("business_id", businessId).in("order_item_id", itemIds) : { data: [], error: null };
   // Tailors never receive the financial price query.
@@ -52,6 +56,7 @@ export default async function DashboardPage() {
   const priceByItem = new Map(prices.map(row => [row.order_item_id, Number(row.unit_price)]));
   const totalsByOrder = new Map<string, number>();
   itemRows.forEach(item => totalsByOrder.set(item.order_id, (totalsByOrder.get(item.order_id) ?? 0) + item.quantity * (priceByItem.get(item.id) ?? 0)));
+  orders.forEach(order => totalsByOrder.set(order.id, Math.max(0, (totalsByOrder.get(order.id) ?? 0) - (discountByOrder.get(order.id) ?? 0) + (expressByOrder.get(order.id) ?? 0))));
 
   const paymentRowsSafe = paymentRows ?? [];
   const adjustments = adjustmentRows ?? [];
@@ -117,6 +122,6 @@ export default async function DashboardPage() {
     role, canViewFinance, isOwner, totalCustomers: customers?.length ?? 0, activeOrders: activeOrders.length,
     overdueOrders: overdueOrders.length, receivedThisMonth, expensesThisMonth, netCashflowThisMonth, outstanding, paymentsByMonth,
     stages, deadlines, recentOrders, orderProfits, recentPayments: recentActivity,
-    dataError: Boolean(customerError || orderError || paymentError || adjustmentError || (isOwner && expenseError) || itemsResult.error || pricesResult.error),
+    dataError: Boolean(customerError || orderError || paymentError || adjustmentError || (isOwner && expenseError) || itemsResult.error || pricesResult.error || discountResult.error || expressResult.error),
   }} />;
 }

@@ -46,9 +46,14 @@ export default async function PaymentsPage() {
   const prices = (priceResult.data ?? []) as PriceRow[];
   const byCustomer = new Map(customers.map(customer => [customer.id, `${customer.first_name} ${customer.last_name}`]));
   const byOrder = new Map(orders.map(order => [order.id, order]));
+  const discountResult = orderIds.length ? await supabase.from("order_voucher_discounts").select("order_id, discount_amount").eq("business_id", businessId).in("order_id", orderIds) : { data: [] };
+  const expressResult = orderIds.length ? await supabase.from("order_express_charges").select("order_id, amount").eq("business_id", businessId).in("order_id", orderIds) : { data: [] };
+  const expressByOrder = new Map((expressResult.data ?? []).map(row => [row.order_id, Number(row.amount)]));
+  const discountByOrder = new Map((discountResult.data ?? []).map(row => [row.order_id, Number(row.discount_amount)]));
   const orderTotals = new Map<string, number>();
   const priceByItem = new Map(prices.map(price => [price.order_item_id, Number(price.unit_price)]));
   items.forEach(item => orderTotals.set(item.order_id, (orderTotals.get(item.order_id) ?? 0) + item.quantity * (priceByItem.get(item.id) ?? 0)));
+  orders.forEach(order => orderTotals.set(order.id, Math.max(0, (orderTotals.get(order.id) ?? 0) - (discountByOrder.get(order.id) ?? 0) + (expressByOrder.get(order.id) ?? 0))));
   const adjustmentByPayment = new Map<string | null, number>();
   adjustments.forEach(adjustment => adjustmentByPayment.set(adjustment.payment_id, (adjustmentByPayment.get(adjustment.payment_id) ?? 0) + Number(adjustment.amount)));
   const paidByOrder = new Map<string, number>();

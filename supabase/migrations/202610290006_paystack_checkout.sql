@@ -16,17 +16,17 @@ create or replace function public.create_paystack_checkout_request(p_order_id uu
 returns table(request_id uuid,reference text,amount numeric,customer_email text,customer_name text)
 language plpgsql security definer set search_path='' as $$
 declare v_user_id uuid:=(select auth.uid()); v_business_id uuid; v_customer_id uuid; v_stage public.order_stage;
-v_email text; v_customer_name text; v_total numeric; v_received numeric; v_reserved numeric; v_reference text; v_request_id uuid;
+v_email text; v_customer_name text; v_total numeric; v_discount numeric; v_rush_fee numeric; v_received numeric; v_reserved numeric; v_reference text; v_request_id uuid;
 begin
  if v_user_id is null then raise exception 'Sign in to start checkout.'; end if;
  if p_amount is null or p_amount<=0 or round(p_amount*100)<>p_amount*100 then raise exception 'Enter a valid amount in naira.'; end if;
- select o.business_id,o.customer_id,o.stage,c.email,trim(c.first_name||' '||c.last_name) into v_business_id,v_customer_id,v_stage,v_email,v_customer_name
+ select o.business_id,o.customer_id,o.stage,c.email,trim(c.first_name||' '||c.last_name),coalesce((select d.discount_amount from public.order_voucher_discounts d where d.order_id=o.id and d.business_id=o.business_id),0),coalesce((select x.amount from public.order_express_charges x where x.order_id=o.id and x.business_id=o.business_id),0) into v_business_id,v_customer_id,v_stage,v_email,v_customer_name,v_discount,v_rush_fee
  from public.orders o join public.customers c on c.id=o.customer_id and c.business_id=o.business_id where o.id=p_order_id and c.archived_at is null for update of o;
  if v_business_id is null then raise exception 'Order not found.'; end if;
  if v_stage='cancelled' then raise exception 'Cancelled orders cannot be paid.'; end if;
  if v_email is null or position('@' in v_email)<2 then raise exception 'Add a valid email address to the customer record before online checkout.'; end if;
  if not exists(select 1 from public.business_memberships m where m.business_id=v_business_id and m.user_id=v_user_id and m.is_active and m.role in ('owner','supervisor')) then raise exception 'Owner or supervisor access is required.'; end if;
- select coalesce(sum(i.quantity*p.unit_price),0) into v_total from public.order_items i join public.order_item_prices p on p.order_item_id=i.id and p.business_id=i.business_id where i.business_id=v_business_id and i.order_id=p_order_id;
+ select greatest(0,coalesce(sum(i.quantity*p.unit_price),0)-v_discount+v_rush_fee) into v_total from public.order_items i join public.order_item_prices p on p.order_item_id=i.id and p.business_id=i.business_id where i.business_id=v_business_id and i.order_id=p_order_id;
  select coalesce(sum(pay.amount),0)-coalesce((select sum(a.amount) from public.payment_adjustments a join public.payments ap on ap.id=a.payment_id and ap.business_id=a.business_id where ap.business_id=v_business_id and ap.order_id=p_order_id),0) into v_received from public.payments pay where pay.business_id=v_business_id and pay.order_id=p_order_id;
  select coalesce(sum(r.amount),0) into v_reserved from public.paystack_checkout_requests r where r.business_id=v_business_id and r.order_id=p_order_id and r.status='pending' and r.expires_at>now();
  if p_amount>v_total-v_received-v_reserved then raise exception 'Checkout amount exceeds the unreserved order balance.'; end if;

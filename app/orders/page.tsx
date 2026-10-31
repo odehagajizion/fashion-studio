@@ -4,8 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 import OrdersClient from "./OrdersClient";
 
 type OrderStage = "not_started" | "in_production" | "awaiting_fitting" | "ready_for_pickup" | "completed" | "cancelled";
-type OrderRow = { id: string; business_id: string; customer_id: string; measurement_session_id: string | null; order_ref: string; stage: OrderStage; due_date: string | null; fitting_date: string | null; pickup_date: string | null; delivery_date: string | null; fulfillment_method: "pickup" | "delivery"; fulfilled_at: string | null; notes: string | null; created_at: string };
-type ItemRow = { id: string; order_id: string; garment_name: string; description: string | null; quantity: number };
+type OrderRow = { id: string; business_id: string; customer_id: string; measurement_session_id: string | null; order_ref: string; stage: OrderStage; due_date: string | null; fitting_date: string | null; pickup_date: string | null; delivery_date: string | null; fulfillment_method: "pickup" | "delivery"; fulfilled_at: string | null; notes: string | null; created_at: string; is_express: boolean };
+type ItemRow = { id: string; order_id: string; garment_name: string; description: string | null; quantity: number; estimated_hours: number | string };
 type PriceRow = { order_item_id: string; unit_price: number | string };
 type CustomerRow = { id: string; first_name: string; last_name: string; customer_ref: string };
 type SessionRow = { id: string; customer_id: string; taken_at: string };
@@ -28,23 +28,26 @@ export default async function OrdersPage() {
   const role = membership.role as string;
   const canManage = role === "owner" || role === "supervisor";
   const { data: orderData } = await supabase.from("orders")
-    .select("id, business_id, customer_id, measurement_session_id, order_ref, stage, due_date, fitting_date, pickup_date, delivery_date, fulfillment_method, fulfilled_at, notes, created_at")
+    .select("id, business_id, customer_id, measurement_session_id, order_ref, stage, due_date, fitting_date, pickup_date, delivery_date, fulfillment_method, fulfilled_at, notes, created_at, is_express")
     .eq("business_id", businessId).order("created_at", { ascending: false });
   const rawOrders = (orderData ?? []) as OrderRow[];
   const orderIds = rawOrders.map(order => order.id);
   const customerIds = [...new Set(rawOrders.map(order => order.customer_id))];
   const measurementSessionIds = [...new Set(rawOrders.map(order => order.measurement_session_id).filter((id): id is string => Boolean(id)))];
   const itemResult = orderIds.length ? await supabase.from("order_items")
-    .select("id, order_id, garment_name, description, quantity").eq("business_id", businessId).in("order_id", orderIds) : { data: [] };
+    .select("id, order_id, garment_name, description, quantity, estimated_hours").eq("business_id", businessId).in("order_id", orderIds) : { data: [] };
   const rawItems = (itemResult.data ?? []) as ItemRow[];
   const itemIds = rawItems.map(item => item.id);
-  const [priceResult, customerResult, activityResult, orderMeasurementResult, assignmentResult, teamResult] = await Promise.all([
+  const [priceResult, customerResult, activityResult, orderMeasurementResult, assignmentResult, teamResult, discountResult, expressChargeResult, settingsResult] = await Promise.all([
     canManage && itemIds.length ? supabase.from("order_item_prices").select("order_item_id, unit_price").eq("business_id", businessId).in("order_item_id", itemIds) : Promise.resolve({ data: [] }),
     customerIds.length ? supabase.from("customers").select("id, first_name, last_name, customer_ref").in("id", customerIds) : Promise.resolve({ data: [] }),
     orderIds.length ? supabase.from("order_activity").select("order_id, activity_type, details, note, created_at, actor_id").eq("business_id", businessId).in("order_id", orderIds).order("created_at", { ascending: false }) : Promise.resolve({ data: [] }),
     measurementSessionIds.length ? supabase.from("measurements").select("id, measurement_session_id, field_name, value, unit").eq("business_id", businessId).in("measurement_session_id", measurementSessionIds) : Promise.resolve({ data: [] }),
     orderIds.length ? supabase.from("order_assignments").select("order_id, user_id").eq("business_id", businessId).in("order_id", orderIds).is("unassigned_at", null) : Promise.resolve({ data: [] }),
     canManage ? supabase.rpc("list_assignable_team_members") : Promise.resolve({ data: [] }),
+    canManage && orderIds.length ? supabase.from("order_voucher_discounts").select("order_id, discount_amount").eq("business_id", businessId).in("order_id", orderIds) : Promise.resolve({ data: [] }),
+    canManage && orderIds.length ? supabase.from("order_express_charges").select("order_id, amount").eq("business_id", businessId).in("order_id", orderIds) : Promise.resolve({ data: [] }),
+    canManage ? supabase.from("business_production_settings").select("express_fee_percentage").eq("business_id", businessId).maybeSingle() : Promise.resolve({ data: null }),
   ]);
   const customers = (customerResult.data ?? []) as CustomerRow[];
   const prices = (priceResult.data ?? []) as PriceRow[];
@@ -52,13 +55,18 @@ export default async function OrdersPage() {
   const orderMeasurements = (orderMeasurementResult.data ?? []) as MeasurementRow[];
   const assignmentRows = (assignmentResult.data ?? []) as AssignmentRow[];
   const team = (teamResult.data ?? []) as TeamMemberRow[];
+  const discountByOrder = new Map((discountResult.data ?? []).map(row => [row.order_id, Number(row.discount_amount)]));
+  const expressFeeByOrder = new Map((expressChargeResult.data ?? []).map(row => [row.order_id, Number(row.amount)]));
+  const expressFeePercentage = Number(settingsResult.data?.express_fee_percentage ?? 25);
   const teamById = new Map(team.map(member => [member.user_id, member]));
   const customerMap = new Map(customers.map(customer => [customer.id, customer]));
   const priceMap = new Map(prices.map(price => [price.order_item_id, Number(price.unit_price)]));
   const orders = rawOrders.map(order => ({
     ...order,
+    discount_amount: discountByOrder.get(order.id) ?? 0,
+    express_fee_amount: expressFeeByOrder.get(order.id) ?? 0,
     customer: customerMap.get(order.customer_id) ?? null,
-    items: rawItems.filter(item => item.order_id === order.id).map(item => ({ ...item, unit_price: priceMap.get(item.id) ?? null })),
+    items: rawItems.filter(item => item.order_id === order.id).map(item => ({ ...item, estimated_hours: Number(item.estimated_hours ?? 8), unit_price: priceMap.get(item.id) ?? null })),
 
     activity: activities.filter(activity => activity.order_id === order.id).map(activity => ({
       ...activity,
@@ -91,7 +99,7 @@ export default async function OrdersPage() {
     </aside>
     <section className="main-area customers-main">
       <div className="topline"><div><p className="eyebrow">ORDER WORKFLOW</p><h1>Orders</h1><p className="page-subtitle">Track garments from new order through fitting and fulfilment.</p></div><Link className="button button-secondary back-dashboard" href="/dashboard">← Dashboard</Link></div>
-      <OrdersClient orders={orders} customers={selectableCustomers} measurementSessions={selectableSessions} canManage={canManage} team={team} />
+      <OrdersClient orders={orders} customers={selectableCustomers} measurementSessions={selectableSessions} canManage={canManage} team={team} activeTailorCount={team.filter(member => member.role === "tailor").length} queuedHours={rawItems.filter(item => rawOrders.some(order => order.id === item.order_id && order.stage === "in_production")).reduce((sum, item) => sum + Number(item.estimated_hours ?? 8) * item.quantity, 0)} queuedOrderCount={rawOrders.filter(order => order.stage === "in_production").length} expressFeePercentage={expressFeePercentage} />
       <footer className="page-footer"><span>Production stage and fulfilment are tracked separately.</span><span>MVENDYWENDY · OWNER WORKSPACE</span></footer>
     </section>
   </main>;

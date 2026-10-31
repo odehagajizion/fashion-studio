@@ -40,11 +40,16 @@ export default async function ReportsPage() {
   const itemIds = items.map(item => item.id);
   const pricesResult = isOwner && itemIds.length ? await supabase.from("order_item_prices").select("order_item_id, unit_price").eq("business_id", businessId).in("order_item_id", itemIds) : { data: [], error: null };
   const prices = (pricesResult.data ?? []) as PriceRow[];
+  const discountResult = isOwner && orderIds.length ? await supabase.from("order_voucher_discounts").select("order_id, discount_amount").eq("business_id", businessId).in("order_id", orderIds) : { data: [], error: null };
+  const expressResult = isOwner && orderIds.length ? await supabase.from("order_express_charges").select("order_id, amount").eq("business_id", businessId).in("order_id", orderIds) : { data: [], error: null };
+  const expressByOrder = new Map((expressResult.data ?? []).map(row => [row.order_id, Number(row.amount)]));
+  const discountByOrder = new Map((discountResult.data ?? []).map(row => [row.order_id, Number(row.discount_amount)]));
   const payments = (paymentRows ?? []) as PaymentRow[];
   const adjustments = (adjustmentRows ?? []) as AdjustmentRow[];
   const priceByItem = new Map(prices.map(price => [price.order_item_id, Number(price.unit_price)]));
   const totalByOrder = new Map<string, number>();
   items.forEach(item => totalByOrder.set(item.order_id, (totalByOrder.get(item.order_id) ?? 0) + Number(item.quantity) * (priceByItem.get(item.id) ?? 0)));
+  rawOrders.forEach(order => totalByOrder.set(order.id, Math.max(0, (totalByOrder.get(order.id) ?? 0) - (discountByOrder.get(order.id) ?? 0) + (expressByOrder.get(order.id) ?? 0))));
   const paymentById = new Map(payments.map(payment => [payment.id, payment]));
   const receivedByOrder = new Map<string, number>();
   payments.forEach(payment => receivedByOrder.set(payment.order_id, (receivedByOrder.get(payment.order_id) ?? 0) + Number(payment.amount)));
@@ -69,7 +74,7 @@ export default async function ReportsPage() {
       return { id: adjustment.id, order_id: payment?.order_id ?? "", order_ref: order?.order_ref ?? "Order", customer_name: customerNames.get(order?.customer_id ?? "") ?? "Customer", type: "adjustment" as const, label: adjustment.adjustment_type, amount: Number(adjustment.amount), date: adjustment.created_at, reason: adjustment.reason };
     }),
   ].sort((a, b) => b.date.localeCompare(a.date)) : [];
-  const dataError = Boolean(ordersError || customersError || (isOwner && (paymentsError || adjustmentsError || expensesError || itemsResult.error || pricesResult.error)));
+  const dataError = Boolean(ordersError || customersError || (isOwner && (paymentsError || adjustmentsError || expensesError || itemsResult.error || pricesResult.error || discountResult.error || expressResult.error)));
 
   return <main className="app-shell">
     <aside className="sidebar">
