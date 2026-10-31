@@ -52,7 +52,7 @@ export default async function CustomersPage() {
 
   return <main className="app-shell">
     <aside className="sidebar">
-      <Link className="brand" href="/dashboard"><span className="brand-mark">M</span><span>MvendyWendy</span></Link>
+      <Link className="brand" href="/dashboard"><span className="brand-mark" aria-hidden="true" /><span>MvendyWendy</span></Link>
       <nav aria-label="Main navigation">
         <div className="nav-group"><p className="group-label">MAIN</p>
           <Link className="nav-item" href="/dashboard"><span className="nav-icon">▦</span>Dashboard</Link>

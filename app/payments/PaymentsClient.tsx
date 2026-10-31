@@ -143,7 +143,7 @@ export default function PaymentsClient({ orders, receivableOrders, history, tota
       <section className="receipt-dialog" role="dialog" aria-modal="true" aria-labelledby="receipt-title">
         <header className="receipt-dialog-actions"><span>Payment receipt</span><button type="button" className="close-button receipt-close" autoFocus aria-label="Close receipt" onClick={() => setReceipt(null)}>×</button></header>
         <div className="printable-receipt">
-          <div className="receipt-brand"><span className="brand-mark">M</span><strong>MvendyWendy</strong><small>FASHION STUDIO</small></div>
+          <div className="receipt-brand"><span className="brand-mark" aria-hidden="true" /><strong>MvendyWendy</strong><small>FASHION STUDIO</small></div>
           <div className="receipt-rule" />
           <p className="eyebrow">PAYMENT RECEIPT</p><h2 id="receipt-title">Thank you for your payment</h2>
           <div className="receipt-number"><span>Receipt number</span><strong>RCT-{receipt.payment_id?.slice(0, 8).toUpperCase() ?? "UNRECORDED"}</strong></div>

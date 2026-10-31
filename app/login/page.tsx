@@ -30,7 +30,7 @@ export default function LoginPage() {
   }
 
   return <main className="auth-shell"><section className="auth-card">
-    <Link className="brand auth-brand" href="/"><span className="brand-mark">M</span><span>MvendyWendy</span></Link>
+    <Link className="brand auth-brand" href="/"><span className="brand-mark" aria-hidden="true" /><span>MvendyWendy</span></Link>
     <p className="eyebrow auth-eyebrow">OWNER WORKSPACE</p>
     <h1>Welcome back</h1>
     <p className="auth-subtitle">Sign in to manage your studio.</p>

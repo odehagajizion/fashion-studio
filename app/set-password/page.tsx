@@ -16,7 +16,7 @@ export default async function SetPasswordPage({ searchParams }: { searchParams: 
   if (!membership || !allowedRoles.includes(String(membership.role))) redirect("/login?recovery=invalid");
 
   return <main className="auth-shell"><section className="auth-card">
-    <Link className="brand auth-brand" href="/"><span className="brand-mark">M</span><span>MvendyWendy</span></Link>
+    <Link className="brand auth-brand" href="/"><span className="brand-mark" aria-hidden="true" /><span>MvendyWendy</span></Link>
     <p className="eyebrow auth-eyebrow">{isRecovery ? "ACCOUNT RECOVERY" : "STUDIO INVITATION"}</p>
     <h1>{isRecovery ? "Choose a new password" : "Set your password"}</h1>
     <p className="auth-subtitle">{isRecovery ? "Choose a new password for your studio account." : "Your studio account is ready. Choose a password to finish setting it up."}</p>

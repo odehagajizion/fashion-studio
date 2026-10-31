@@ -32,7 +32,7 @@ export default function ForgotPasswordPage() {
   }
 
   return <main className="auth-shell"><section className="auth-card">
-    <Link className="brand auth-brand" href="/"><span className="brand-mark">M</span><span>MvendyWendy</span></Link>
+    <Link className="brand auth-brand" href="/"><span className="brand-mark" aria-hidden="true" /><span>MvendyWendy</span></Link>
     <p className="eyebrow auth-eyebrow">ACCOUNT RECOVERY</p>
     <h1>Forgot your password?</h1>
     <p className="auth-subtitle">Enter your account email and we’ll send a secure reset link if it matches a studio account.</p>

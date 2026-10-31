@@ -4,7 +4,7 @@ export default async function SetupPage({ searchParams }: { searchParams: Promis
   const { reason } = await searchParams;
   const needsEnvironment = reason === "environment";
   return <main className="auth-shell"><section className="auth-card setup-card">
-    <Link className="brand auth-brand" href="/"><span className="brand-mark">M</span><span>MvendyWendy</span></Link>
+    <Link className="brand auth-brand" href="/"><span className="brand-mark" aria-hidden="true" /><span>MvendyWendy</span></Link>
     <p className="eyebrow auth-eyebrow">ONE-TIME SETUP</p>
     <h1>{needsEnvironment ? "Connect your studio" : "Finish workspace setup"}</h1>
     <p className="auth-subtitle">{needsEnvironment ? "Add your Supabase project settings to connect sign-in and the studio database." : "Your account is signed in, but it isn’t linked to a studio yet."}</p>
